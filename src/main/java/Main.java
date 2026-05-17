@@ -2,6 +2,12 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import com.openai.models.chat.completions.ChatCompletionTool;
+import com.openai.models.chat.completions.ChatCompletionToolType;
+import com.openai.models.chat.completions.ChatCompletionFunctionDefinition;
+import com.openai.models.chat.completions.ChatCompletionFunctionParameters;
+
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
@@ -27,10 +33,30 @@ public class Main {
                 .baseUrl(baseUrl)
                 .build();
 
+        // Dummy tool definition
+        List<ChatCompletionTool> tools = List.of(
+            ChatCompletionTool.builder()
+                .type(ChatCompletionToolType.FUNCTION)
+                .function(
+                    ChatCompletionFunctionDefinition.builder()
+                        .name("read_file")
+                        .description("Reads the content of a local file from the codebase.")
+                        .parameters(
+                            ChatCompletionFunctionParameters.builder()
+                                .type("object")
+                                .addProperty("path", "string")
+                                .build()
+                        )
+                        .build()
+                )
+                .build()
+        );
+
         ChatCompletion response = client.chat().completions().create(
                 ChatCompletionCreateParams.builder()
                         .model("anthropic/claude-haiku-4.5")
                         .addUserMessage(prompt)
+                        .tools(tools)
                         .build()
         );
 
