@@ -2,19 +2,15 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
-import com.fasterxml.jackson.annotation.JsonClassDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-
+import com.openai.models.chat.completions.ChatCompletionTool;
+import com.openai.models.FunctionDefinition;
+import com.openai.models.FunctionParameters;
+import com.openai.core.JsonValue;
 
 import java.util.List;
+import java.util.Map;
 
 public class Main {
-    @JsonClassDescription("Reads the content of a local file from the codebase.")
-    public static class ReadFile {
-        @JsonPropertyDescription("The path to the file to read.")
-        public String path;
-    }
-
     public static void main(String[] args) {
         if (args.length < 2 || !"-p".equals(args[0])) {
             System.err.println("Usage: program -p <prompt>");
@@ -38,11 +34,26 @@ public class Main {
                 .baseUrl(baseUrl)
                 .build();
 
+        ChatCompletionTool readFileTool = ChatCompletionTool.builder()
+                .function(FunctionDefinition.builder()
+                        .name("read_file")
+                        .description("Reads the content of a local file from the codebase.")
+                        .parameters(FunctionParameters.builder()
+                                .putAdditionalProperty("type", JsonValue.from("object"))
+                                .putAdditionalProperty("properties", JsonValue.from(Map.of(
+                                        "path", Map.of("type", "string", "description", "The path to the file to read.")
+                                )))
+                                .putAdditionalProperty("required", JsonValue.from(List.of("path")))
+                                .putAdditionalProperty("additionalProperties", JsonValue.from(false))
+                                .build())
+                        .build())
+                .build();
+
         ChatCompletion response = client.chat().completions().create(
                 ChatCompletionCreateParams.builder()
                         .model("anthropic/claude-haiku-4.5")
                         .addUserMessage(prompt)
-                        .addTool(ReadFile.class)
+                        .addTool(readFileTool)
                         .build()
         );
 
